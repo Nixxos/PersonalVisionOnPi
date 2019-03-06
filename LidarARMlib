@@ -1,0 +1,169 @@
+#include "Lidar.h"
+
+// constructor
+// input: transmit pin number, receive pin number, baud
+// output: none
+LiDAR::LiDAR(PinName TXPin, PinName RXPin, int Baud)
+{
+   UART1 = new Serial(TXPin, RXPin, Baud); // create a local instance of serial
+   Buffer = new uint8_t[9];
+}
+
+//destructor
+LiDAR::~LiDAR()
+{
+    delete UART1; // kill instance of serial
+}
+
+// write buffer
+// input: none
+// output: none
+void LiDAR::writeBuffer()
+{
+    for (uint8_t i = 0; i < 8; i++)
+    {
+        while (! UART1->writeable()); // check write buffer
+        UART1->putc(Buffer[i]); // write character
+    } 
+}
+
+// change baud
+// input: standard baud value
+// output: none
+void LiDAR::changeBaud(int NewBaud)
+{
+    uint8_t BaudCode;
+    
+    // translate standard baud to code, defaults to 9600
+    switch (NewBaud)
+    {
+        case 9600:
+        {
+            BaudCode = 0x00;
+            break;
+        }    
+        case 14400:
+        {
+            BaudCode = 0x01;
+            break;
+        }    
+        case 19200:
+        {
+            BaudCode = 0x02;
+            break;
+        }    
+        case 38400:
+        {
+            BaudCode = 0x03;
+            break;
+        }    
+        case 56000:
+        {
+            BaudCode = 0x04;
+            break;
+        }    
+        case 57600:
+        {
+            BaudCode = 0x05;
+            break;
+        }    
+        case 115200:
+        {
+            BaudCode = 0x06;
+            break;
+        }   
+        default:
+        {
+            BaudCode = 0x06;
+            break;
+        } 
+    }
+    
+    Buffer[0] = 0x42;
+    Buffer[1] = 0x57;
+    Buffer[2] = 0x02;
+    Buffer[3] = 0x00;
+    Buffer[4] = 0x00;
+    Buffer[5] = 0x00;
+    Buffer[6] = BaudCode;
+    Buffer[7] = 0x08;
+    writeBuffer();
+}
+
+// set trigger source
+// input: EXTERNAL or INTERNAL
+// output: none
+
+#define EXTERNAL 0x00
+#define INTERNAL 0x01
+
+void LiDAR::setTriggerSource(uint8_t Source)
+{
+    Buffer[0] = 0x42;
+    Buffer[1] = 0x57;
+    Buffer[2] = 0x02;
+    Buffer[3] = 0x00;
+    Buffer[4] = 0x00;
+    Buffer[5] = 0x00;
+    Buffer[6] = Source;
+    Buffer[7] = 0x40;
+    writeBuffer();
+}
+
+// set distance mode
+// input: SHORT or LONG
+// output: none
+
+#define SHORT 0x02
+#define LONG 0x07
+
+void LiDAR::setDistanceMode(uint8_t Mode)
+{
+    Buffer[0] = 0x42;
+    Buffer[1] = 0x57;
+    Buffer[2] = 0x02;
+    Buffer[3] = 0x00;
+    Buffer[4] = 0x00;
+    Buffer[5] = 0x00;
+    Buffer[6] = Mode;
+    Buffer[7] = 0x11;
+    writeBuffer();
+}
+
+// get distance
+// input: none
+// output: distance, signal strength
+
+void LiDAR::getDistance(uint16_t & Distance, uint16_t & SignalStrength)
+{
+   
+    Buffer[0] = 0x42;
+    Buffer[1] = 0x57;
+    Buffer[2] = 0x02;
+    Buffer[3] = 0x00;
+    Buffer[4] = 0x00;
+    Buffer[5] = 0x00;
+    Buffer[6] = 0x00;
+    Buffer[7] = 0x41;
+    writeBuffer(); // trigger
+    
+    for (int i = 0; i < 9; i++)
+    {
+        uint32_t TimeOut = 1000000;
+        while (! UART1->readable())
+        {
+            if (--TimeOut == 0) break;
+        }
+        if (TimeOut == 0) 
+        {
+            Buffer[2] = 0x00;
+            Buffer[3] = 0x00;
+            Buffer[4] = 0x00;
+            Buffer[5] = 0x00;
+            break;
+        }
+        Buffer[i] = UART1->getc();    
+    }
+    Distance = (Buffer[3] << 8) + Buffer[2];
+    SignalStrength = (Buffer[5] << 8) + Buffer[4];
+}

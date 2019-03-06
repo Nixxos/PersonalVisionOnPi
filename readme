@@ -1,0 +1,14 @@
+Run "python3 startupScript.py"
+
+Resources used:
+pyimagesearch.com
+  multiple fundamental code chunks and basic understanding of pi camera funtions/processing
+stack exchange tutorials 
+  on setting up serial communications between Arduino sub-processor
+  setting up RPI 3B+ GPIO pin communications with TF Mini
+Le google
+  many googles
+
+Branches:
+  Master: fully working code, ready to deploy
+  SciandraWorkingDir: Sciandra's test directory for experimenting with extra pieces
